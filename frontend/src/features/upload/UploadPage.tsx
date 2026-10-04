@@ -11,7 +11,8 @@ import { useDocumentTitle } from '@/lib/hooks'
 import type { InvoiceSummary, UploadResponse } from '@/lib/types'
 import styles from './Upload.module.css'
 
-const MAX_FILE_MB = 15
+// Must match the API's MAX_UPLOAD_MB (Vercel caps request bodies at 4.5 MB).
+const MAX_FILE_MB = Number(import.meta.env.VITE_MAX_UPLOAD_MB ?? 15)
 const MAX_FILES = 20
 const ACCEPT = '.pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg,image/webp'
 const ACCEPTED_TYPES = ['application/pdf', 'image/png', 'image/jpeg', 'image/webp']

@@ -1382,6 +1382,39 @@ The seed creates bills for every scenario:
 
 It also writes ready-to-upload files to [`samples/`](samples/), so you can drop them on the Upload page and watch real OpenAI extraction. Re-running the seed resets **only** the demo company.
 
+### Deploying to Vercel
+
+The backend and frontend deploy as **two Vercel projects** from this repository.
+
+**1. API project.** Set *Root Directory* to `backend`. Vercel imports `app` from `app/asgi.py` (configured in `pyproject.toml` under `[tool.vercel]`), and `backend/vercel.json` allows up to 60 s per request. Set these environment variables:
+
+| Variable | Value |
+|----------|-------|
+| `DB_URL` | Your Postgres URL |
+| `OPENAI_API_KEY` | Your OpenAI key |
+| `JWT_SECRET` | A long random string. Required: every instance must sign tokens with the same secret. |
+| `APP_ENV` | `production` |
+| `STORAGE_BACKEND` | `database`. Vercel's filesystem is read-only and not shared between instances, so documents are kept in Postgres. |
+| `JOB_QUEUE_BACKEND` | `sync`. Vercel freezes the function after the response, so extraction runs inside the upload request (about 5 to 10 s per file). |
+| `MAX_UPLOAD_MB` | `4`. Vercel limits request bodies to 4.5 MB. |
+| `DB_POOL_SIZE` | `2`. Keeps connection use low across many instances. |
+| `CORS_ORIGINS` | The frontend URL, for example `https://ledgerline.vercel.app` |
+
+Run migrations from your machine against the same database before the first deploy: `make migrate`.
+
+**2. Web project.** Set *Root Directory* to `frontend`. Vite is auto-detected, and `frontend/vercel.json` sends every page route to the SPA. Set these environment variables:
+
+| Variable | Value |
+|----------|-------|
+| `VITE_API_BASE_URL` | The API URL plus `/api/v1`, for example `https://ledgerline-api.vercel.app/api/v1` |
+| `VITE_MAX_UPLOAD_MB` | `4` |
+
+**On Vercel:**
+
+- The upload page sends one file per request, so each request stays within the time limit.
+- If a function is cut off mid-extraction, the bill shows **Retry extraction** after 5 minutes.
+- For heavier volume, run the API on a long-running host (Render, Railway, Fly) with `JOB_QUEUE_BACKEND=in_process` (or Redis), and move documents to S3.
+
 ### Environment variables
 
 Settings are read from `.env` at the repository root (or `backend/.env`). The template is [`.env.example`](.env.example).
@@ -1400,6 +1433,9 @@ Settings are read from `.env` at the repository root (or `backend/.env`). The te
 | `MAX_UPLOAD_MB` / `MAX_FILES_PER_UPLOAD` | no | `15` / `20` | Upload limits |
 | `EXTRACTION_WORKERS` / `EXTRACTION_MAX_ATTEMPTS` | no | `3` / `3` | Background workers and retry attempts |
 | `CORS_ORIGINS` | no | `http://localhost:5173` | Browser origins allowed to call the API |
+| `STORAGE_BACKEND` | no | `local` | `local` (disk at `STORAGE_DIR`) or `database` (Postgres; for Vercel) |
+| `JOB_QUEUE_BACKEND` | no | `in_process` | `in_process` (background workers) or `sync` (extract inside the upload request; for Vercel) |
+| `DB_POOL_SIZE` | no | `10` | Database connections per instance |
 | `TEST_DATABASE_URL` | tests | `postgresql://localhost/ledgerline_test` | A **separate** database that the tests wipe and rebuild |
 
 ### Tests and code quality

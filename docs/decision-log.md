@@ -75,6 +75,11 @@ Format: **Decision** - what was decided. **Why** - the reasoning. **Alternatives
 | D-069 | The demo seed defaults to a deterministic offline `FakeProvider` that returns what is printed on each generated invoice. `--live` sends the samples through OpenAI instead. | The demo is reproducible, free and works offline, while still exercising the real PDF reading, grounding, matching, validation and review code. | Always calling OpenAI (cost, variability). |
 | D-070 | Invoices and line items expose `pages_processed`, `extraction_model` and per-field confidence, so the UI can show *how* each value was obtained. | Reviewers trust and verify faster when they know a value came from the text layer rather than a scan. | Hide extraction metadata. |
 
+| D-090 | `STORAGE_BACKEND=database`: a `DatabaseFileStorage` keeps documents in a `stored_files` table. | Vercel functions have a read-only, per-instance filesystem, so local files would vanish between requests. Postgres is already there, so no new service is needed. Fine at MVP volume with files of 4 MB or less. | S3 or Vercel Blob (needs extra credentials; the better choice as volume grows). |
+| D-091 | `JOB_QUEUE_BACKEND=sync`: extraction runs inline in the upload request. Retry backoff sleeps are honoured. Startup recovery is skipped. | Serverless functions are frozen after the response, so background threads cannot be trusted. Extraction takes about 5 to 10 s per file, and the UI uploads one file per request, which keeps each request within the 60 s limit. | Vercel Queues, or a separate worker host (the scale-up path). |
+| D-092 | A bill left in `queued`/`processing` for more than 5 minutes can be retried by hand. | A crashed worker or a cut-off function would otherwise leave a bill stuck for ever. | Automatic sweeper (needs a scheduler). |
+| D-093 | Module-level `app` lives in `app/asgi.py`, with Vercel pointed at it through `[tool.vercel] entrypoint`. `app/main.py` keeps only the factory. | Importing `app.main` (tests, scripts) must not build a full app from environment settings as a side effect. | `app = create_app()` inside `app/main.py`. |
+
 ## Frontend decisions
 
 | ID | Decision | Why | Alternatives |

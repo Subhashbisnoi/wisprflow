@@ -21,6 +21,10 @@ dependencies = [
     "openai>=1.50",
 ]
 
+# Vercel imports `app` from app/asgi.py (app/main.py only exposes the create_app factory).
+[tool.vercel]
+entrypoint = "app.asgi:app"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.3",

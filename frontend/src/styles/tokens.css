@@ -1,0 +1,136 @@
+/*
+ * Ledgerline design tokens: the ONLY place colours, spacing, radii, shadows and font sizes
+ * are defined (D-081). Components reference these variables; no raw values elsewhere.
+ *
+ * Contrast (WCAG 2.1 AA, D-086), measured on white unless noted:
+ *   text #0F172A 17.9:1 | text-secondary #475569 7.6:1 | text-muted #64748B 4.8:1
+ *   primary #1E3A5F 11.4:1 (white on primary 11.4:1) | accent #0F766E 5.5:1
+ *   warning-text #92400E on warning-bg 6.4:1 | error-text #991B1B on error-bg 7.4:1
+ *   success-text #115E59 on success-bg 7.0:1
+ */
+:root {
+  /* Neutrals */
+  --color-bg: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f1f5f9;
+  --color-surface-hover: #f5f8fb;
+  --color-surface-selected: #eef3f9;
+  --color-border: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+  --color-text: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #64748b;
+  --color-text-disabled: #94a3b8;
+
+  /* Brand */
+  --color-primary: #1e3a5f;
+  --color-primary-hover: #172f4d;
+  --color-primary-active: #11253d;
+  --color-primary-subtle: #e9eff6;
+  --color-primary-subtle-border: #c9d6e6;
+  --color-on-primary: #ffffff;
+  --color-on-primary-muted: #d5e0ec; /* 8.9:1 on primary */
+  --color-on-primary-subtle: #9fb3c9; /* 5.4:1 on primary */
+  --color-on-primary-accent: #7fd1c5;
+  --color-on-primary-border: rgba(255, 255, 255, 0.1);
+  --color-on-primary-hover: rgba(255, 255, 255, 0.07);
+  --color-on-primary-active: rgba(255, 255, 255, 0.13);
+  --color-accent: #0f766e;
+  --color-accent-hover: #0c5f58;
+  --color-accent-subtle: #e6f3f1;
+
+  /* Status (used only for status: badges, findings, validation) */
+  --color-success-bg: #e6f3f1;
+  --color-success-border: #b5ddd7;
+  --color-success-text: #115e59;
+  --color-warning-bg: #fef3c7;
+  --color-warning-border: #f6d58a;
+  --color-warning-text: #92400e;
+  --color-warning-solid: #d97706;
+  --color-error-bg: #fdecec;
+  --color-error-border: #f3c3c3;
+  --color-error-text: #991b1b;
+  --color-error-solid: #b42318;
+  --color-info-bg: #e9eff6;
+  --color-info-border: #c9d6e6;
+  --color-info-text: #1e3a5f;
+  --color-neutral-bg: #f1f5f9;
+  --color-neutral-border: #dbe2ea;
+  --color-neutral-text: #475569;
+
+  /* Data visualisation */
+  --chart-approved: #2f5f9e; /* validated: dataviz six checks, light surface */
+  --chart-pending: #1a9a8c;
+  --chart-grid: #e2e8f0;
+  --chart-axis: #64748b;
+
+  /* Focus */
+  --focus-ring: 0 0 0 3px rgba(30, 58, 95, 0.28);
+  --focus-ring-error: 0 0 0 3px rgba(180, 35, 24, 0.22);
+
+  /* Typography */
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Public Sans', 'Inter', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --text-2xs: 11px;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 15px;
+  --text-lg: 17px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 28px;
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Spacing (4px scale) */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Shape */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 999px;
+  --border-width: 1px;
+
+  /* Elevation (very soft) */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.03);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.07);
+  --shadow-overlay: 0 16px 40px rgba(15, 23, 42, 0.16);
+  --overlay-backdrop: rgba(15, 23, 42, 0.32);
+
+  /* Layout */
+  --sidebar-width: 232px;
+  --topbar-height: 56px;
+  --content-max-width: 1440px;
+  --control-height-sm: 30px;
+  --control-height: 36px;
+  --table-row-height: 40px;
+  --drawer-width: 480px;
+
+  /* Motion */
+  --transition-fast: 120ms ease;
+  --transition-base: 180ms ease;
+
+  /* Layers */
+  --z-sticky: 10;
+  --z-topbar: 20;
+  --z-overlay: 100;
+  --z-toast: 200;
+}

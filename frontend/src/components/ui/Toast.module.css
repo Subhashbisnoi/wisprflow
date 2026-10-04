@@ -1,0 +1,97 @@
+.region {
+  position: fixed;
+  right: var(--space-6);
+  bottom: var(--space-6);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: min(380px, calc(100vw - var(--space-8)));
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-left-width: 3px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  animation: toast-in var(--transition-base);
+}
+
+.icon {
+  display: inline-flex;
+  margin-top: 1px;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-sm);
+}
+
+.description {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+
+.close {
+  display: inline-flex;
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.success {
+  border-left-color: var(--color-accent);
+}
+
+.success .icon {
+  color: var(--color-success-text);
+}
+
+.error {
+  border-left-color: var(--color-error-solid);
+}
+
+.error .icon {
+  color: var(--color-error-text);
+}
+
+.warning {
+  border-left-color: var(--color-warning-solid);
+}
+
+.warning .icon {
+  color: var(--color-warning-text);
+}
+
+.info {
+  border-left-color: var(--color-primary);
+}
+
+.info .icon {
+  color: var(--color-info-text);
+}
+
+@keyframes toast-in {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

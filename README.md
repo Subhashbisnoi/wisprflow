@@ -4,12 +4,16 @@
 
 A finance team uploads vendor invoices as PDFs or phone photos. Ledgerline reads every field with AI, checks each invoice for GST compliance errors, arithmetic mistakes and duplicates, and places it in a review queue. A reviewer corrects anything that is wrong, then approves or rejects the bill. Every change is recorded in an audit trail that shows who changed what, from which value to which, and when.
 
+**[Watch the demo video](https://www.youtube.com/watch?v=avyh8P1E02o&t=2s)**
+
 | | |
 |---|---|
+| **Demo video** | [youtube.com/watch?v=avyh8P1E02o](https://www.youtube.com/watch?v=avyh8P1E02o&t=2s) |
+| **Live backend API** | [apiwish.collabup.co.in](https://apiwish.collabup.co.in): [health check](https://apiwish.collabup.co.in/api/v1/health), [interactive API docs](https://apiwish.collabup.co.in/docs) |
 | **Backend** | Python 3.12, FastAPI, SQLAlchemy 2, Alembic, Pydantic v2, PostgreSQL |
 | **Frontend** | React 19, TypeScript, Vite, TanStack Query, CSS Modules with a single design-token file |
 | **AI** | OpenAI (`gpt-4.1-mini` for PDF text, `gpt-4.1` for scans), behind a swappable provider interface |
-| **Quality** | 83 backend tests on real Postgres, Vitest, Ruff, mypy (strict), ESLint, Prettier |
+| **Quality** | 88 backend tests on real Postgres, Vitest, Ruff, mypy (strict), ESLint, Prettier |
 | **Demo login** | `demo@ledgerline.in` / `Demo@12345` (after `make seed`) |
 
 ```bash
@@ -1383,6 +1387,8 @@ The seed creates bills for every scenario:
 It also writes ready-to-upload files to [`samples/`](samples/), so you can drop them on the Upload page and watch real OpenAI extraction. Re-running the seed resets **only** the demo company.
 
 ### Deploying the API to EC2 (recommended)
+
+The live backend at **https://apiwish.collabup.co.in** runs this setup on Amazon Linux 2023: Nginx with a Let's Encrypt certificate in front of Uvicorn on `127.0.0.1:8001`, sharing the instance with another app.
 
 On a regular server the API runs as designed: real background workers, 15 MB uploads, no request time limit, and automatic recovery of in-progress bills after a restart. [`deploy/ec2/`](deploy/ec2/README.md) has everything needed for Ubuntu without Docker: a setup script, a deploy script with automatic rollback, a systemd unit, Nginx with HTTPS, and pinned, hash-checked dependencies.
 

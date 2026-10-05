@@ -1,5 +1,6 @@
 # Ledgerline API: FastAPI served by Uvicorn, with the extraction workers in-process.
-# Installed by deploy/ec2/setup.sh to /etc/systemd/system/ledgerline-api.service.
+# Installed by deploy/ec2/setup.sh to /etc/systemd/system/ledgerline-api.service, with
+# __API_PORT__ replaced by API_PORT (default 8001; see common.sh).
 #
 # One process on purpose: the in-process job queue (EXTRACTION_WORKERS threads) lives
 # inside it, and pending bills are re-queued on startup. Scale up the instance first;
@@ -18,7 +19,7 @@ Group=ledgerline
 WorkingDirectory=/opt/ledgerline/backend
 EnvironmentFile=/etc/ledgerline/ledgerline.env
 ExecStart=/opt/ledgerline/backend/.venv/bin/uvicorn app.asgi:app \
-    --host 127.0.0.1 --port 8000 \
+    --host 127.0.0.1 --port __API_PORT__ \
     --proxy-headers --forwarded-allow-ips 127.0.0.1 \
     --timeout-graceful-shutdown 25 \
     --no-server-header

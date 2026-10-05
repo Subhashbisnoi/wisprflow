@@ -1,9 +1,9 @@
 # Deploying the Ledgerline API on EC2 (no Docker)
 
-This deploys the FastAPI backend to a single Ubuntu EC2 instance. Nginx handles HTTPS and proxying, systemd keeps the API running, and a Python virtualenv holds pinned, hash-checked dependencies. The frontend can stay on Vercel (or any static host) and call this API.
+This deploys the FastAPI backend to a single EC2 instance running **Ubuntu 22.04/24.04 or Amazon Linux 2023**. Nginx handles HTTPS and proxying, systemd keeps the API running, and a Python virtualenv holds pinned, hash-checked dependencies. The frontend can stay on Vercel (or any static host) and call this API.
 
 ```text
-Browser ──HTTPS──> Nginx :443 ──> Uvicorn 127.0.0.1:8000 (systemd: ledgerline-api)
+Browser ──HTTPS──> Nginx :443 ──> Uvicorn 127.0.0.1:8001 (systemd: ledgerline-api)
                                       ├── FastAPI routes
                                       └── 3 extraction worker threads ──> OpenAI
                                   Postgres (DB_URL)        /var/lib/ledgerline/storage
@@ -24,7 +24,7 @@ On EC2 the API runs as a normal long-lived process. Unlike on Vercel:
 | `deploy.sh` | | Deploy the latest code, with automatic rollback |
 | `common.sh` | | Paths and helpers shared by both scripts |
 | `ledgerline-api.service` | `/etc/systemd/system/` | systemd unit: user, environment, restart policy, hardening |
-| `nginx-ledgerline-api.conf` | `/etc/nginx/sites-available/ledgerline-api` | Reverse proxy, upload size, timeouts, request IDs |
+| `nginx-ledgerline-api.conf` | `/etc/nginx/sites-available/ledgerline-api` (Ubuntu) or `/etc/nginx/conf.d/ledgerline-api.conf` (Amazon Linux) | Reverse proxy, upload size, timeouts, request IDs |
 | `ledgerline.env.example` | `/etc/ledgerline/ledgerline.env` | Production settings (secrets live only on the server) |
 | `../../backend/requirements.lock` | | Exact dependency versions with SHA-256 hashes |
 
@@ -39,7 +39,7 @@ Layout on the server:
 
 ## 1. Launch the instance
 
-- **AMI:** Ubuntu Server 24.04 LTS (x86_64 or ARM/Graviton; both work).
+- **AMI:** Ubuntu Server 24.04 LTS or Amazon Linux 2023 (x86_64 or ARM/Graviton). On Amazon Linux the scripts install `python3.12` (the default `python3` is 3.9) and a certbot of their own if none is present.
 - **Type:** `t3.small` (2 GB RAM) is enough for the MVP. Use `t3.medium` for heavy scanning.
 - **Region:** the same region as your database (for example `ap-south-1` Mumbai) to keep latency low.
 - **Storage:** 20 GB gp3.
@@ -54,9 +54,9 @@ Layout on the server:
 ## 2. Run setup
 
 ```bash
-ssh -i your-key.pem ubuntu@<elastic-ip>
+ssh -i your-key.pem ubuntu@<elastic-ip>        # Amazon Linux: ec2-user@<elastic-ip>
 
-git clone https://github.com/Subhashbisnoi/wisprflow.git
+git clone https://github.com/Subhashbisnoi/wisprflow.git   # or your fork
 cd wisprflow
 
 # With a domain (gets a free Let's Encrypt certificate and redirects HTTP to HTTPS):
@@ -87,6 +87,17 @@ curl https://api.yourdomain.com/api/v1/health      # {"status":"ok"}
 ```
 
 Interactive API docs are at `https://api.yourdomain.com/docs`.
+
+### Sharing an instance with other apps
+
+The scripts are safe on a server that already runs other sites:
+
+- **Port.** Ledgerline listens on `127.0.0.1:8001` (`LEDGERLINE_PORT` in the env file). Setup refuses to start if another program owns that port.
+- **Nginx.** Ledgerline's server block answers only its own `server_name`. When Nginx already serves other sites, setup requires `--domain`, so Ledgerline never becomes the catch-all default site.
+- **Certificates.** An existing certbot and its renewal schedule are reused.
+- **Repository.** Setup clones from the repository it was run from, so forks work without `--repo`.
+
+On a small instance (1 GB RAM) shared with another app, keep `EXTRACTION_WORKERS=2`. Consider adding a 1 GB swap file as a safety net.
 
 ## 3. Connect the frontend
 
@@ -121,6 +132,7 @@ sudo /opt/ledgerline/deploy/ec2/deploy.sh --ref v0.2.0   # a specific tag or com
 
 | Task | Command |
 |------|---------|
+| Is it listening? | `sudo ss -ltnp \| grep 8001` |
 | Live API logs (JSON, one line per event) | `sudo journalctl -u ledgerline-api -f` |
 | Errors only | `sudo journalctl -u ledgerline-api -p warning --since "1 hour ago"` |
 | Find a request by the ID the user reports | `sudo journalctl -u ledgerline-api \| grep <request_id>` |
@@ -137,7 +149,7 @@ sudo /opt/ledgerline/deploy/ec2/deploy.sh --ref v0.2.0   # a specific tag or com
 
 ## 6. Security notes
 
-- The API listens on `127.0.0.1:8000` only. The internet reaches it through Nginx.
+- The API listens on `127.0.0.1:8001` only. The internet reaches it through Nginx.
 - The service runs as an unprivileged `ledgerline` user with systemd hardening. The code is read-only to it, and only `/var/lib/ledgerline` is writable.
 - Secrets live only in `/etc/ledgerline/ledgerline.env` (mode 640). They are never in the repository or the process command line.
 - Dependencies are installed with `--require-hashes`, so a tampered package fails to install.

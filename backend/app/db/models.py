@@ -6,6 +6,7 @@ from app.features.auth.models import Company, User
 from app.features.invoices.models import Invoice, InvoiceLineItem
 from app.features.validation.models import ValidationFinding
 from app.features.vendors.models import Vendor
+from app.infrastructure.storage.models import StoredFile
 
 __all__ = [
     "AuditEvent",
@@ -13,6 +14,7 @@ __all__ = [
     "Company",
     "Invoice",
     "InvoiceLineItem",
+    "StoredFile",
     "User",
     "ValidationFinding",
     "Vendor",

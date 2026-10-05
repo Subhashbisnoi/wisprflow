@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import Settings, get_settings
 from app.core.container import Container
@@ -29,7 +30,11 @@ from app.features.extraction.providers.openai_provider import OpenAIProvider
 from app.features.invoices.router import router as invoices_router
 from app.features.review.router import router as review_router
 from app.features.vendors.router import router as vendors_router
+from app.infrastructure.jobs.base import JobQueue
 from app.infrastructure.jobs.in_process import InProcessJobQueue
+from app.infrastructure.jobs.sync import SynchronousJobQueue
+from app.infrastructure.storage.base import FileStorage
+from app.infrastructure.storage.database import DatabaseFileStorage
 from app.infrastructure.storage.local import LocalFileStorage
 
 logger = logging.getLogger("app")
@@ -47,12 +52,25 @@ def build_llm_provider(settings: Settings) -> LLMProvider:
     )
 
 
+def build_storage(settings: Settings, session_factory: sessionmaker[Session]) -> FileStorage:
+    if settings.storage_backend == "database":
+        return DatabaseFileStorage(session_factory)
+    return LocalFileStorage(settings.storage_dir)
+
+
+def build_job_queue(settings: Settings) -> JobQueue:
+    if settings.job_queue_backend == "sync":
+        return SynchronousJobQueue(honor_delays=True)
+    return InProcessJobQueue(workers=settings.extraction_workers)
+
+
 def build_container(settings: Settings) -> Container:
+    session_factory = get_session_factory()
     return Container(
         settings=settings,
-        session_factory=get_session_factory(),
-        storage=LocalFileStorage(settings.storage_dir),
-        job_queue=InProcessJobQueue(workers=settings.extraction_workers),
+        session_factory=session_factory,
+        storage=build_storage(settings, session_factory),
+        job_queue=build_job_queue(settings),
         llm_provider=build_llm_provider(settings),
         token_service=TokenService(settings),
         password_hasher=PasswordHasher(),
@@ -67,7 +85,9 @@ def create_app(container: Container | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-        if settings.start_job_queue:
+        # Recovery only makes sense for a long-running worker pool; in sync mode a stuck bill
+        # is retried by the reviewer instead (D-091).
+        if settings.start_job_queue and settings.job_queue_backend == "in_process":
             container.job_queue.start()
             recover_pending_jobs(container)
         logger.info(

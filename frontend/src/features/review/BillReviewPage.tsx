@@ -17,7 +17,7 @@ import {
 import { StatusBadge } from '@/features/invoices/StatusBadge'
 import { ApiError, errorMessage } from '@/lib/api'
 import { formatDateTime, formatINR, pluralize } from '@/lib/format'
-import { useDocumentTitle } from '@/lib/hooks'
+import { useDocumentTitle, useNow } from '@/lib/hooks'
 import type { HeaderField, InvoiceDetail, LineField, LineItem } from '@/lib/types'
 import { AuditTimeline } from './AuditTimeline'
 import { ApproveModal, RejectModal } from './DecisionModals'
@@ -330,17 +330,27 @@ function StatusBanner({
   onRetry: () => void
   retrying: boolean
 }) {
+  const now = useNow()
   if (invoice.status === 'queued' || invoice.status === 'processing') {
+    // Matches the API's STALE_EXTRACTION_MINUTES: a stuck job can be retried by hand.
+    const stuck = now - new Date(invoice.updated_at).getTime() > 5 * 60 * 1000
     return (
       <div className={`${styles.banner} ${styles.bannerInfo}`} role="status">
         <Spinner size={14} />
-        <div>
+        <div className={styles.bannerText}>
           <p className={styles.bannerTitle}>Reading this bill</p>
           <p>
-            {invoice.error_message ??
-              'Extraction usually takes 5 to 20 seconds. This page updates automatically.'}
+            {stuck
+              ? 'This is taking much longer than usual. Retry the extraction.'
+              : (invoice.error_message ??
+                'Extraction usually takes 5 to 20 seconds. This page updates automatically.')}
           </p>
         </div>
+        {stuck && (
+          <Button icon="refresh" onClick={onRetry} loading={retrying}>
+            Retry extraction
+          </Button>
+        )}
       </div>
     )
   }

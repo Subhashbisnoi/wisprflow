@@ -36,3 +36,13 @@ export function useUrlState() {
   }
   return { params, update }
 }
+
+/** Current time that re-renders the caller every `intervalMs` (keeps render pure). */
+export function useNow(intervalMs = 30_000): number {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), intervalMs)
+    return () => window.clearInterval(id)
+  }, [intervalMs])
+  return now
+}

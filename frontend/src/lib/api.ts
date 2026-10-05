@@ -1,7 +1,10 @@
 // Thin fetch wrapper: auth header, consistent error envelope (D-060), session expiry hook.
 
 const TOKEN_KEY = 'ledgerline.token'
-export const API_BASE = '/api/v1'
+// Same-origin '/api/v1' in development (Vite proxy). Set VITE_API_BASE_URL at build time when
+// the API is on another domain, e.g. https://ledgerline-api.vercel.app/api/v1.
+export const API_BASE =
+  (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') || '/api/v1'
 
 export class ApiError extends Error {
   readonly status: number

@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     openai_vision_model: str = "gpt-4.1"
     openai_timeout_seconds: float = 60.0
 
+    # "local" writes to STORAGE_DIR; "database" keeps documents in Postgres, which suits
+    # serverless hosts (Vercel) whose filesystem is read-only and not shared (D-090).
+    storage_backend: Literal["local", "database"] = "local"
     storage_dir: Path = BACKEND_DIR / "storage"
     max_upload_mb: int = Field(default=15, ge=1, le=100)
     max_files_per_upload: int = Field(default=20, ge=1, le=100)
@@ -56,6 +59,10 @@ class Settings(BaseSettings):
     extraction_max_attempts: int = Field(default=3, ge=1, le=10)
     extraction_backoff_base_seconds: float = 2.0
     start_job_queue: bool = True
+    # "in_process" = background worker threads; "sync" = run extraction inside the upload
+    # request, for serverless hosts that freeze the process after the response (D-091).
+    job_queue_backend: Literal["in_process", "sync"] = "in_process"
+    db_pool_size: int = Field(default=10, ge=1, le=50)
 
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 

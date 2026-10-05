@@ -2,6 +2,7 @@ import hashlib
 import logging
 import uuid
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from typing import BinaryIO
 
 from sqlalchemy.orm import Session
@@ -19,6 +20,8 @@ from app.infrastructure.jobs.base import JobQueue
 from app.infrastructure.storage.base import FileStorage
 
 logger = logging.getLogger("app.invoices")
+
+STALE_EXTRACTION_MINUTES = 5
 
 
 @dataclass(frozen=True)
@@ -77,6 +80,11 @@ class InvoiceService:
                     EXTRACT_INVOICE_JOB,
                     extraction_payload(outcome.invoice.id, self._tenant.company_id),
                 )
+        # An inline (sync) queue may already have extracted them in its own session.
+        self._session.expire_all()
+        for outcome in outcomes:
+            if outcome.invoice is not None:
+                self._session.refresh(outcome.invoice)
         accepted = sum(1 for o in outcomes if o.invoice)
         logger.info(
             "invoices uploaded",
@@ -166,14 +174,28 @@ class InvoiceService:
             filename=invoice.original_filename,
         )
 
+    @staticmethod
+    def _can_retry(invoice: Invoice) -> bool:
+        if invoice.status == InvoiceStatus.FAILED:
+            return True
+        # A worker that died mid-job (or a serverless timeout) leaves the bill in progress.
+        stale_before = datetime.now(UTC) - timedelta(minutes=STALE_EXTRACTION_MINUTES)
+        return (
+            invoice.status in (InvoiceStatus.QUEUED, InvoiceStatus.PROCESSING)
+            and invoice.updated_at < stale_before
+        )
+
     # --- Commands ----------------------------------------------------------------------------
 
     def retry_extraction(self, invoice_id: uuid.UUID) -> Invoice:
         invoice = self._invoices.get_for_update(invoice_id)
         if invoice is None:
             return self._invoices.get_or_raise(invoice_id)
-        if invoice.status != InvoiceStatus.FAILED:
-            raise InvalidStateError("Only bills whose extraction failed can be retried.")
+        if not self._can_retry(invoice):
+            raise InvalidStateError(
+                "Only failed bills, or bills stuck in extraction for more than "
+                f"{STALE_EXTRACTION_MINUTES} minutes, can be retried."
+            )
         invoice.status = InvoiceStatus.QUEUED
         invoice.extraction_attempts = 0
         invoice.error_message = None
@@ -186,4 +208,6 @@ class InvoiceService:
         )
         self._session.commit()
         self._jobs.enqueue(EXTRACT_INVOICE_JOB, extraction_payload(invoice.id, invoice.company_id))
+        # An inline (sync) queue may already have finished the job in its own session.
+        self._session.expire_all()
         return self._invoices.get_or_raise(invoice_id)

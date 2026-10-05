@@ -12,6 +12,9 @@
 set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Never fail silently: report the failing line even if loading the helpers breaks.
+trap 'printf "\033[1;31mxx\033[0m %s failed at line %s\n" "$(basename "$0")" "${LINENO}" >&2' ERR
+
 # shellcheck source=common.sh
 source "${SCRIPT_DIR}/common.sh"
 

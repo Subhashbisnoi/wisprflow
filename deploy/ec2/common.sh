@@ -12,15 +12,20 @@ DATA_DIR="/var/lib/ledgerline"            # writable: uploaded documents
 SERVICE_NAME="ledgerline-api"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 # Local port for Uvicorn. 8001 so it can share an instance with another app on 8000.
-# Read from the env file when set there, so setup.sh and deploy.sh always agree.
-API_PORT="${LEDGERLINE_PORT:-$(sed -n 's/^LEDGERLINE_PORT=//p' "${ENV_FILE}" 2>/dev/null | tail -n1)}"
+# Read from the env file when set there, so setup.sh and deploy.sh always agree. The file
+# does not exist before the first setup run, and this file is sourced under `set -e`,
+# so only read it when present.
+API_PORT="${LEDGERLINE_PORT:-}"
+if [[ -z "${API_PORT}" && -r "${ENV_FILE}" ]]; then
+  API_PORT="$(sed -n 's/^LEDGERLINE_PORT=//p' "${ENV_FILE}" | tail -n1)"
+fi
 API_PORT="${API_PORT:-8001}"
 HEALTH_URL="http://127.0.0.1:${API_PORT}/api/v1/health"
 
 # --- Operating system ------------------------------------------------------------------
 # Ubuntu/Debian (apt, sites-available) and Amazon Linux 2023/RHEL family (dnf, conf.d).
 # shellcheck source=/dev/null  # present on the target server, not on dev machines
-OS_ID="$(. /etc/os-release 2>/dev/null && echo "${ID:-unknown}")"
+OS_ID="$( { . /etc/os-release && echo "${ID:-unknown}"; } 2>/dev/null || echo unknown)"
 case "${OS_ID}" in
   ubuntu|debian) OS_FAMILY="debian" ;;
   amzn|rhel|centos|rocky|almalinux|fedora) OS_FAMILY="rhel" ;;

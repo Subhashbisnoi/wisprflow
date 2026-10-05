@@ -80,6 +80,11 @@ Format: **Decision** - what was decided. **Why** - the reasoning. **Alternatives
 | D-092 | A bill left in `queued`/`processing` for more than 5 minutes can be retried by hand. | A crashed worker or a cut-off function would otherwise leave a bill stuck for ever. | Automatic sweeper (needs a scheduler). |
 | D-093 | Module-level `app` lives in `app/asgi.py`, with Vercel pointed at it through `[tool.vercel] entrypoint`. `app/main.py` keeps only the factory. | Importing `app.main` (tests, scripts) must not build a full app from environment settings as a side effect. | `app = create_app()` inside `app/main.py`. |
 
+| D-094 | EC2 deployment without containers: systemd runs Uvicorn behind Nginx, with a virtualenv and a hash-pinned `requirements.lock`. | The brief ruled out Docker. systemd gives restarts, logging (journald) and sandboxing; Nginx gives TLS, upload limits and timeouts. Hash pinning makes installs reproducible and tamper-evident. | Docker or ECS (excluded); Gunicorn (Uvicorn's own process management is enough for one process). |
+| D-095 | One Uvicorn process per instance. | The in-process job queue and its startup recovery live in that process; several processes would each recover the same pending bills. Scale up first, then move the queue to Redis to scale out. | `--workers N` (would duplicate the queue). |
+| D-096 | `deploy.sh` rolls the code back automatically when the new version fails its health check. It never rolls back database migrations. | A failed deploy should not mean downtime. Downgrading the database automatically is riskier than leaving an additive migration in place. | Manual rollback, or blue/green (needs two instances). |
+| D-097 | Migrations and one-off scripts run through `systemd-run` with the service's user, environment file and working directory. | The environment file is parsed by systemd exactly as for the service, so values containing `&`, `$` or `?` behave identically. No secrets on the command line. | `source` the env file in bash (breaks on special characters). |
+
 ## Frontend decisions
 
 | ID | Decision | Why | Alternatives |

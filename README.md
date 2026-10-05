@@ -1382,6 +1382,17 @@ The seed creates bills for every scenario:
 
 It also writes ready-to-upload files to [`samples/`](samples/), so you can drop them on the Upload page and watch real OpenAI extraction. Re-running the seed resets **only** the demo company.
 
+### Deploying the API to EC2 (recommended)
+
+On a regular server the API runs as designed: real background workers, 15 MB uploads, no request time limit, and automatic recovery of in-progress bills after a restart. [`deploy/ec2/`](deploy/ec2/README.md) has everything needed for Ubuntu without Docker: a setup script, a deploy script with automatic rollback, a systemd unit, Nginx with HTTPS, and pinned, hash-checked dependencies.
+
+```bash
+git clone https://github.com/Subhashbisnoi/wisprflow.git && cd wisprflow
+sudo ./deploy/ec2/setup.sh --domain api.yourdomain.com --email you@yourdomain.com
+# fill in /etc/ledgerline/ledgerline.env, run the same command again, and you're live
+sudo /opt/ledgerline/deploy/ec2/deploy.sh   # later updates
+```
+
 ### Deploying to Vercel
 
 The backend and frontend deploy as **two Vercel projects** from this repository.
@@ -1471,6 +1482,7 @@ frontend/
   src/components/ui/    Button, Input, Select, Card, Table, Pager, Modal, Drawer, Toast, Badge, states
   src/features/<name>/  auth, upload, review, bills, vendors, dashboard
   src/styles/tokens.css every colour, spacing value and font size
+deploy/ec2/              EC2 deployment: setup and deploy scripts, systemd unit, Nginx config
 docs/                   design documents and screenshots
 samples/                generated invoices for manual upload
 ```

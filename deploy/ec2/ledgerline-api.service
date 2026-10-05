@@ -1,0 +1,46 @@
+# Ledgerline API: FastAPI served by Uvicorn, with the extraction workers in-process.
+# Installed by deploy/ec2/setup.sh to /etc/systemd/system/ledgerline-api.service.
+#
+# One process on purpose: the in-process job queue (EXTRACTION_WORKERS threads) lives
+# inside it, and pending bills are re-queued on startup. Scale up the instance first;
+# scale out by moving the queue to Redis (see docs/04-technical-architecture.md section 8).
+
+[Unit]
+Description=Ledgerline API (FastAPI + extraction workers)
+Documentation=https://github.com/Subhashbisnoi/wisprflow/tree/main/deploy/ec2
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=ledgerline
+Group=ledgerline
+WorkingDirectory=/opt/ledgerline/backend
+EnvironmentFile=/etc/ledgerline/ledgerline.env
+ExecStart=/opt/ledgerline/backend/.venv/bin/uvicorn app.asgi:app \
+    --host 127.0.0.1 --port 8000 \
+    --proxy-headers --forwarded-allow-ips 127.0.0.1 \
+    --timeout-graceful-shutdown 25 \
+    --no-server-header
+Restart=always
+RestartSec=3
+# Lets in-flight requests finish and worker threads drain before SIGKILL.
+TimeoutStopSec=40
+
+# Hardening: the code is read-only to the service; only document storage is writable.
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/ledgerline
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+LockPersonality=true
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

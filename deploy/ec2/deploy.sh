@@ -52,8 +52,7 @@ rollback() {
   warn "Deploy failed; rolling the code back to ${previous:0:7}"
   as_app git checkout --quiet --force "${previous}"
   install_python_deps
-  install -m 644 "${APP_DIR}/deploy/ec2/ledgerline-api.service" "${SERVICE_FILE}"
-  systemctl daemon-reload
+  install_service_file
   systemctl restart "${SERVICE_NAME}"
   if wait_for_health 30; then
     warn "Rolled back to ${previous:0:7}; the API is serving the previous version."
@@ -67,8 +66,7 @@ trap rollback ERR
 
 install_python_deps
 run_migrations
-install -m 644 "${APP_DIR}/deploy/ec2/ledgerline-api.service" "${SERVICE_FILE}"
-systemctl daemon-reload
+install_service_file
 log "Restarting ${SERVICE_NAME}"
 systemctl restart "${SERVICE_NAME}"
 if ! wait_for_health 30; then
